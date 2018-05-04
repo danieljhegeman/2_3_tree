@@ -9,7 +9,7 @@ struct node * insert(struct node *root, struct node *node);
 int findLargestNodeVal(struct node *node);
 void valOneSwap(struct node *treeNode, struct node *newNode);
 void printTree(struct node *root);
-void makeListNode(struct node *treeNode, int listRow);
+struct listNode * makeListNode(struct node *treeNode, int row);
 
 struct node {
   int valOne;
@@ -24,6 +24,12 @@ struct files {
   FILE *output;
 };
 
+struct listNode {
+  int row;
+  struct node *treeNode;
+  struct listNode *next;
+};
+
 static int count = 0;
 
 int main(int argc, char *argv[])
@@ -36,7 +42,6 @@ int main(int argc, char *argv[])
   struct files *io = setInputAndOutput(argc, argv);
   char *input = NULL;
   size_t max = 10;
-  printTree(root);
   while (getline(&input, &max, io->input) != -1) {
     node = makeNode(atoi(input), 0);
     fprintf(stderr, "%d\n", node->valOne);
@@ -67,6 +72,8 @@ int main(int argc, char *argv[])
         root->left = node;
       }
     } else {
+      printTree(root);
+      return 1;
       printf("Count is >= 3\n");
       printf("Root valOne: %d\n", root->valOne);
       printf("Root left->valOne: %d\n", root->left->valOne);
@@ -225,50 +232,48 @@ struct files * setInputAndOutput(int argc, char *args[])
 
 void printTree(struct node *root)
 {
-  int listRow = 0;
-  int newRow = false;
-  struct listNode *node = makeListNode(root, listRow);
+  int row = 0;
+  int newRow = 0;
+  struct listNode *node = makeListNode(root, row);
   struct listNode *tail = node;
   struct listNode *nextRowHead;
   struct listNode *child;
   while (node) {
-    if (node.row > listRow) {
+    if (node->row > row) {
       ++row;
-      newRow = true;
+      newRow = 1;
     }
-    if (node->left) { // not a leaf
-      tail.next = makeListNode(node->left, listRow + 1);
-      tail.next.next = makeListNode(node->middle, listRow + 1);
-      tail = tail.next.next;
-      if (node->right) {
-        tail.next = makeListNode(node->right, listRow + 1);
-        tail = tail.next;
+    if (node->treeNode->left) { // not a leaf
+      tail->next = makeListNode(node->treeNode->left, row + 1);
+      tail->next->next = makeListNode(node->treeNode->middle, row + 1);
+      tail = tail->next->next;
+      if (node->treeNode->right) {
+        tail->next = makeListNode(node->treeNode->right, row + 1);
+        tail = tail->next;
       }
     }
     if (newRow) {
-      printf("\n");
-      newRow = false;
+      if (row > 0) {
+        printf("|\n");
+      }
+      newRow = 0;
     } else {
-      printf(" ");
+      printf("|");
     }
-    printf("%d ", node->valOne);
-    printf("%d", node->valTwo);
-    node = node.next;
+    printf("%d", node->treeNode->valOne);
+    if (node->treeNode->left) {
+      printf(",%d", node->treeNode->valTwo);
+    }
+    node = node->next;
   }
   printf("\n");
 }
 
-void makeListNode(struct node *treeNode, int listRow)
+struct listNode * makeListNode(struct node *treeNode, int row)
 {
   struct listNode *entry = malloc(sizeof(*entry));
-  entry->row = listRow;
+  entry->row = row;
   entry->treeNode = treeNode;
   entry->next = NULL;
   return entry;
 }
-
-struct listNode {
-  int listRow;
-  struct node *treeNode;
-  struct listNode *next;
-};

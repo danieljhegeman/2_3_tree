@@ -4,10 +4,12 @@
 
 struct node * makeNode(int valOne, int valTwo);
 struct files * setInputAndOutput(int argc, char *args[]);
-struct node * expand(struct node * root, struct node * returnedNode);
-void insert(struct node * root, struct node * node);
-int findLargestNodeVal(struct node * node);
-void valOneSwap(struct node * treeNode, struct node * newNode);
+struct node * expand(struct node *root, struct node *returnedNode);
+struct node * insert(struct node *root, struct node *node);
+int findLargestNodeVal(struct node *node);
+void valOneSwap(struct node *treeNode, struct node *newNode);
+void printTree(struct node *root);
+void makeListNode(struct node *treeNode, int listRow);
 
 struct node {
   int valOne;
@@ -26,16 +28,17 @@ static int count = 0;
 
 int main(int argc, char *argv[])
 {
-  struct node *root = makeNode(NULL, NULL);
-  struct node *node = makeNode(NULL, NULL);
+  struct node *root = makeNode(0, 0);
+  struct node *node = makeNode(0, 0);
   struct node *returnedNode = NULL;
   struct node *newNode = NULL;
   struct node *newRoot = NULL;
   struct files *io = setInputAndOutput(argc, argv);
   char *input = NULL;
   size_t max = 10;
+  printTree(root);
   while (getline(&input, &max, io->input) != -1) {
-    node = makeNode(atoi(input), NULL);
+    node = makeNode(atoi(input), 0);
     fprintf(stderr, "%d\n", node->valOne);
     if (count < 3) {
       if (root->left) {
@@ -87,7 +90,7 @@ int main(int argc, char *argv[])
   }
 }
 
-struct node * expand(struct node * root, struct node * returnedNode) {
+struct node * expand(struct node *root, struct node *returnedNode) {
   struct node * newNode = NULL;
   if (returnedNode->valOne < root->middle->valOne) {
     newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
@@ -110,7 +113,7 @@ struct node * expand(struct node * root, struct node * returnedNode) {
   return newNode;
 }
 
-void insert(struct node * root, struct node * node) {
+struct node * insert(struct node *root, struct node *node) {
   struct node * newNode = NULL;
   struct node * returnedNode = NULL;
   int insertPosition;
@@ -168,14 +171,14 @@ void insert(struct node * root, struct node * node) {
       root->right = root->middle;
       root->middle = returnedNode;
       root->valTwo = returnedNode->valTwo;
-    } else (insertPosition == 1) {
+    } else {
       root->right = returnedNode;
     }
   }
   return newNode;
 }
 
-int findLargestNodeVal(struct node * node) {
+int findLargestNodeVal(struct node *node) {
   while (node->left) {
     if (node->right) {
       node = node->right;
@@ -186,7 +189,7 @@ int findLargestNodeVal(struct node * node) {
   return node->valOne;
 }
 
-void valOneSwap(struct node * treeNode, struct node * newNode) {
+void valOneSwap(struct node *treeNode, struct node *newNode) {
   int tempVal = treeNode->valOne;
   treeNode->valOne = newNode->valOne;
   newNode->valOne = tempVal;
@@ -195,7 +198,6 @@ void valOneSwap(struct node * treeNode, struct node * newNode) {
 struct node * makeNode(int valOne, int valTwo)
 {
   struct node * node = malloc(sizeof(*node));
-  node->isLeaf = 0;
   node->valOne = valOne;
   node->valTwo = valTwo;
   node->left = NULL;
@@ -220,3 +222,53 @@ struct files * setInputAndOutput(int argc, char *args[])
   }
   return io;
 }
+
+void printTree(struct node *root)
+{
+  int listRow = 0;
+  int newRow = false;
+  struct listNode *node = makeListNode(root, listRow);
+  struct listNode *tail = node;
+  struct listNode *nextRowHead;
+  struct listNode *child;
+  while (node) {
+    if (node.row > listRow) {
+      ++row;
+      newRow = true;
+    }
+    if (node->left) { // not a leaf
+      tail.next = makeListNode(node->left, listRow + 1);
+      tail.next.next = makeListNode(node->middle, listRow + 1);
+      tail = tail.next.next;
+      if (node->right) {
+        tail.next = makeListNode(node->right, listRow + 1);
+        tail = tail.next;
+      }
+    }
+    if (newRow) {
+      printf("\n");
+      newRow = false;
+    } else {
+      printf(" ");
+    }
+    printf("%d ", node->valOne);
+    printf("%d", node->valTwo);
+    node = node.next;
+  }
+  printf("\n");
+}
+
+void makeListNode(struct node *treeNode, int listRow)
+{
+  struct listNode *entry = malloc(sizeof(*entry));
+  entry->row = listRow;
+  entry->treeNode = treeNode;
+  entry->next = NULL;
+  return entry;
+}
+
+struct listNode {
+  int listRow;
+  struct node *treeNode;
+  struct listNode *next;
+};

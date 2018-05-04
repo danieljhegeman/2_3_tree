@@ -3,9 +3,9 @@
 #include <string.h>
 
 struct files * setInputAndOutput(int argc, char *args[]);
-struct node * newNode(int val);
-void valOneSwap(struct node * treeNode, struct node * newNode);
-void insert(struct node * root, int val);
+struct node * makeNode(int val);
+void valOneSwap(struct node * treeNode, struct node * makeNode);
+void insert(struct node * root, struct node * node);
 
 struct node {
   int isLeaf;
@@ -25,13 +25,13 @@ static int count = 0;
 
 int main(int argc, char *argv[])
 {
-  struct node *root = newNode(0);
-  struct node *node = newNode(0);
+  struct node *root = makeNode(0);
+  struct node *node = makeNode(0);
   struct files *io = setInputAndOutput(argc, argv);
   char *input = NULL;
   size_t max = 10;
   while (getline(&input, &max, io->input) != -1) {
-    node = newNode(atoi(input));
+    node = makeNode(atoi(input));
     fprintf(stderr, "%d\n", node->valOne);
     if (count < 3) {
       if (root->left) {
@@ -75,23 +75,44 @@ int main(int argc, char *argv[])
   }
 }
 
-void valOneSwap(struct node * treeNode, struct node * newNode) {
+void valOneSwap(struct node * treeNode, struct node * makeNode) {
   int tempVal = treeNode->valOne;
-  treeNode->valOne = newNode->valOne;
-  newNode->valOne = tempVal;
+  treeNode->valOne = makeNode->valOne;
+  makeNode->valOne = tempVal;
 }
 
-void insert(struct node * root, int val) {
-  if (val < root->valOne) {
-    if (root->middle) {
-      
-    } else {
-      
+void insert(struct node * root, struct node * node) {
+  struct node * newNode;
+  if (!root->left->left) { // root has leaves
+    if (node->valOne < root->left->valOne) {
+      root->valOne = node->valOne;
+      valOneSwap(root->left, node);
     }
+    if (node->valOne < root->middle->valOne) {
+      root->valTwo = node->valOne;
+      valOneSwap(root->middle, node);
+    }
+    if (!root->right) {
+      root->right = node;
+    } else {
+      newNode = makeNode(node->valOne);
+      newNode->left = node;
+      newNode->valTwo = root->right->valOne;
+      newNode->middle = root->right;
+      root->right = NULL;
+    }
+    return newNode;
+  }
+  if (node->valOne < root->valOne) {
+    newNode = insert(root->left, node);
+  } else if (node->valOne < root->valTwo) {
+    newNode = insert(root->middle, node);
+  } else {
+    newNode = insert(root->right, node);
   }
 }
 
-struct node * newNode(int val)
+struct node * makeNode(int val)
 {
   struct node * node = malloc(sizeof(*node));
   node->isLeaf = 0;

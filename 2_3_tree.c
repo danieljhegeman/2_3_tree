@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct node * makeNode(int valOne, int valTwo);
 struct files * setInputAndOutput(int argc, char *args[]);
-struct node * makeNode(int val);
-void valOneSwap(struct node * treeNode, struct node * makeNode);
+struct node * expand(struct node * root, struct node * returnedNode);
 void insert(struct node * root, struct node * node);
+int findLargestNodeVal(struct node * node);
+void valOneSwap(struct node * treeNode, struct node * newNode);
 
 struct node {
-  int isLeaf;
   int valOne;
   int valTwo;
   struct node *left;
@@ -25,13 +26,16 @@ static int count = 0;
 
 int main(int argc, char *argv[])
 {
-  struct node *root = makeNode(0);
-  struct node *node = makeNode(0);
+  struct node *root = makeNode(NULL, NULL);
+  struct node *node = makeNode(NULL, NULL);
+  struct node *returnedNode = NULL;
+  struct node *newNode = NULL;
+  struct node *newRoot = NULL;
   struct files *io = setInputAndOutput(argc, argv);
   char *input = NULL;
   size_t max = 10;
   while (getline(&input, &max, io->input) != -1) {
-    node = makeNode(atoi(input));
+    node = makeNode(atoi(input), NULL);
     fprintf(stderr, "%d\n", node->valOne);
     if (count < 3) {
       if (root->left) {
@@ -70,19 +74,46 @@ int main(int argc, char *argv[])
 //      printf("Entered %d\n", atoi(input));
 //    } else {
 //      fprintf(io->output, "Entered %d\n", atoi(input));
+      returnedNode = insert(root, node);
+      if (returnedNode) {
+        newNode = expand(root, returnedNode);
+        newRoot = makeNode(root->valTwo, returnedNode->valTwo);
+        newRoot->left = root;
+        newRoot->middle = returnedNode;
+        root = newRoot;
+      }
     }
     ++count;
   }
 }
 
-void valOneSwap(struct node * treeNode, struct node * makeNode) {
-  int tempVal = treeNode->valOne;
-  treeNode->valOne = makeNode->valOne;
-  makeNode->valOne = tempVal;
+struct node * expand(struct node * root, struct node * returnedNode) {
+  struct node * newNode = NULL;
+  if (returnedNode->valOne < root->middle->valOne) {
+    newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
+    newNode->left = root->middle;
+    newNode->middle = root->right;
+    root->right = NULL;
+    root->middle = returnedNode;
+    root->valTwo = returnedNode->valTwo;
+  } else if (returnedNode->valOne < root->right->valOne) {
+    newNode = makeNode(returnedNode->valTwo, findLargestNodeVal(root->right));
+    newNode->left = returnedNode;
+    newNode->middle = root->right;
+    root->right = NULL;
+  } else {
+    newNode = makeNode(findLargestNodeVal(root->right), returnedNode->valTwo);
+    newNode->left = root->right;
+    root->right = NULL;
+    newNode->middle = returnedNode;
+  }
+  return newNode;
 }
 
 void insert(struct node * root, struct node * node) {
-  struct node * newNode;
+  struct node * newNode = NULL;
+  struct node * returnedNode = NULL;
+  int insertPosition;
   if (!root->left->left) { // root has leaves
     if (node->valOne < root->left->valOne) {
       root->valOne = node->valOne;
@@ -95,29 +126,78 @@ void insert(struct node * root, struct node * node) {
     if (!root->right) {
       root->right = node;
     } else {
-      newNode = makeNode(node->valOne);
+      newNode = makeNode(node->valOne, root->right->valOne);
       newNode->left = node;
-      newNode->valTwo = root->right->valOne;
       newNode->middle = root->right;
       root->right = NULL;
     }
     return newNode;
   }
   if (node->valOne < root->valOne) {
-    newNode = insert(root->left, node);
+    insertPosition = 0;
+    returnedNode = insert(root->left, node);
   } else if (node->valOne < root->valTwo) {
-    newNode = insert(root->middle, node);
+    insertPosition = 1;
+    returnedNode = insert(root->middle, node);
   } else {
-    newNode = insert(root->right, node);
+    insertPosition = 2;
+    returnedNode = insert(root->right, node);
   }
+  if (returnedNode) {
+    if (root->right) {
+      newNode = expand(root, returnedNode);
+//      if (insertPosition == 0) {
+//        newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
+//        newNode->left = root->middle;
+//        newNode->middle = root->right;
+//        root->right = NULL;
+//        root->middle = returnedNode;
+//        root->valTwo = returnedNode->valTwo;
+//      } else if (insertPosition == 1) { 
+//        newNode = makeNode(returnedNode->valTwo, findLargestNodeVal(root->right));
+//        newNode->left = returnedNode;
+//        newNode->middle = root->right;
+//        root->right = NULL;
+//      } else {
+//        newNode = makeNode(findLargestNodeVal(root->right), returnedNode->valTwo);
+//        newNode->left = root->right;
+//        root->right = NULL;
+//        newNode->middle = returnedNode;
+//      }
+    } else if (insertPosition == 0) {
+      root->right = root->middle;
+      root->middle = returnedNode;
+      root->valTwo = returnedNode->valTwo;
+    } else (insertPosition == 1) {
+      root->right = returnedNode;
+    }
+  }
+  return newNode;
 }
 
-struct node * makeNode(int val)
+int findLargestNodeVal(struct node * node) {
+  while (node->left) {
+    if (node->right) {
+      node = node->right;
+    } else {
+      node = node->middle;
+    }
+  }
+  return node->valOne;
+}
+
+void valOneSwap(struct node * treeNode, struct node * newNode) {
+  int tempVal = treeNode->valOne;
+  treeNode->valOne = newNode->valOne;
+  newNode->valOne = tempVal;
+}
+
+struct node * makeNode(int valOne, int valTwo)
 {
   struct node * node = malloc(sizeof(*node));
   node->isLeaf = 0;
-  node->valOne = val;
-  node->valTwo = 0;
+  node->valOne = valOne;
+  node->valTwo = valTwo;
   node->left = NULL;
   node->middle = NULL;
   node->right = NULL;

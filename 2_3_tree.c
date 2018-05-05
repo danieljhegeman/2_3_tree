@@ -73,24 +73,17 @@ int main(int argc, char *argv[])
       }
     } else {
       printTree(root);
-      return 1;
-      printf("Count is >= 3\n");
-      printf("Root valOne: %d\n", root->valOne);
-      printf("Root left->valOne: %d\n", root->left->valOne);
-      printf("Root valTwo: %d\n", root->valTwo);
-      printf("Root middle->valOne: %d\n", root->middle->valOne);
-      printf("Root right->valOne: %d\n", root->right->valOne);
-//    if (io->output == stdout) {
-//      printf("Entered %d\n", atoi(input));
-//    } else {
-//      fprintf(io->output, "Entered %d\n", atoi(input));
       returnedNode = insert(root, node);
       if (returnedNode) {
-        newNode = expand(root, returnedNode);
-        newRoot = makeNode(root->valTwo, returnedNode->valTwo);
-        newRoot->left = root;
-        newRoot->middle = returnedNode;
-        root = newRoot;
+        newNode = malloc(sizeof(*newNode));
+        newNode->middle = returnedNode;
+        newNode->left = root;
+        newNode->valOne = root->valTwo;
+        newNode->valTwo = returnedNode->valTwo;
+        printTree(newNode);
+        root = newNode;
+      } else {
+        printTree(newNode);
       }
     }
     ++count;
@@ -98,7 +91,8 @@ int main(int argc, char *argv[])
 }
 
 struct node * expand(struct node *root, struct node *returnedNode) {
-  struct node * newNode = NULL;
+  struct node *newNode = NULL;
+  fprintf(stderr, "%d %d\n", returnedNode->valOne, returnedNode->valTwo);
   if (returnedNode->valOne < root->middle->valOne) {
     newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
     newNode->left = root->middle;
@@ -123,7 +117,7 @@ struct node * expand(struct node *root, struct node *returnedNode) {
 struct node * insert(struct node *root, struct node *node) {
   struct node * newNode = NULL;
   struct node * returnedNode = NULL;
-  int insertPosition;
+  int insertPosition = 0;
   if (!root->left->left) { // root has leaves
     if (node->valOne < root->left->valOne) {
       root->valOne = node->valOne;
@@ -135,23 +129,35 @@ struct node * insert(struct node *root, struct node *node) {
     }
     if (!root->right) {
       root->right = node;
-    } else {
+    } else if (node->valOne < root->right->valOne) {
       newNode = makeNode(node->valOne, root->right->valOne);
       newNode->left = node;
       newNode->middle = root->right;
       root->right = NULL;
+    } else if (node->valOne > root->right->valOne) {
+      newNode = makeNode(root->right->valOne, node->valOne);
+      newNode->left = root->right;
+      root->right = NULL;
+      newNode->middle = node;
     }
     return newNode;
   }
   if (node->valOne < root->valOne) {
-    insertPosition = 0;
+    insertPosition = 1;
     returnedNode = insert(root->left, node);
   } else if (node->valOne < root->valTwo) {
-    insertPosition = 1;
+    insertPosition = 2;
     returnedNode = insert(root->middle, node);
   } else {
-    insertPosition = 2;
-    returnedNode = insert(root->right, node);
+    if (!root->right) {
+      returnedNode = insert(root->middle, node); 
+      if (!returnedNode) {
+        root->valTwo = node->valOne;
+      }
+    } else {
+      insertPosition = 3;
+      returnedNode = insert(root->right, node);
+    }
   }
   if (returnedNode) {
     if (root->right) {
@@ -174,7 +180,7 @@ struct node * insert(struct node *root, struct node *node) {
 //        root->right = NULL;
 //        newNode->middle = returnedNode;
 //      }
-    } else if (insertPosition == 0) {
+    } else if (insertPosition == 1) {
       root->right = root->middle;
       root->middle = returnedNode;
       root->valTwo = returnedNode->valTwo;
@@ -236,8 +242,7 @@ void printTree(struct node *root)
   int newRow = 0;
   struct listNode *node = makeListNode(root, row);
   struct listNode *tail = node;
-  struct listNode *nextRowHead;
-  struct listNode *child;
+  struct listNode *temp;
   while (node) {
     if (node->row > row) {
       ++row;
@@ -254,7 +259,7 @@ void printTree(struct node *root)
     }
     if (newRow) {
       if (row > 0) {
-        printf("|\n");
+        printf("|\n|");
       }
       newRow = 0;
     } else {
@@ -264,9 +269,11 @@ void printTree(struct node *root)
     if (node->treeNode->left) {
       printf(",%d", node->treeNode->valTwo);
     }
+    temp = node;
     node = node->next;
+    free(temp);
   }
-  printf("\n");
+  printf("|\n");
 }
 
 struct listNode * makeListNode(struct node *treeNode, int row)

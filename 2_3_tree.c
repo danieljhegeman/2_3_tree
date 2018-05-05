@@ -71,14 +71,8 @@ int main(int argc, char *argv[])
         root->left = node;
       }
     } else {
-      fprintf(stderr, "Begin\n");
-      printTree(root);
-      fprintf(stderr, "End\n");
       returnedNode = insert(root, node);
       if (returnedNode) {
-        fprintf(stderr, "yes\n");
-        fprintf(stderr, "%d %d\n", returnedNode->valOne, returnedNode->valTwo);
-        fprintf(stderr, "%d %d\n", root->valOne, root->valTwo);
         newRoot = makeNode(root->valTwo, returnedNode->valTwo);
         newRoot->left = root;
         newRoot->middle = returnedNode;

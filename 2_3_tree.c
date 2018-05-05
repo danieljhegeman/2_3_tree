@@ -44,7 +44,6 @@ int main(int argc, char *argv[])
   size_t max = 10;
   while (getline(&input, &max, io->input) != -1) {
     node = makeNode(atoi(input), 0);
-    fprintf(stderr, "%d\n", node->valOne);
     if (count < 3) {
       if (root->left) {
         if (node->valOne <= root->valOne) {
@@ -72,18 +71,21 @@ int main(int argc, char *argv[])
         root->left = node;
       }
     } else {
+      fprintf(stderr, "Begin\n");
       printTree(root);
+      fprintf(stderr, "End\n");
       returnedNode = insert(root, node);
       if (returnedNode) {
-        newNode = malloc(sizeof(*newNode));
-        newNode->middle = returnedNode;
-        newNode->left = root;
-        newNode->valOne = root->valTwo;
-        newNode->valTwo = returnedNode->valTwo;
-        printTree(newNode);
-        root = newNode;
+        fprintf(stderr, "yes\n");
+        fprintf(stderr, "%d %d\n", returnedNode->valOne, returnedNode->valTwo);
+        fprintf(stderr, "%d %d\n", root->valOne, root->valTwo);
+        newRoot = makeNode(root->valTwo, returnedNode->valTwo);
+        newRoot->left = root;
+        newRoot->middle = returnedNode;
+        root = newRoot;
+        printTree(root);
       } else {
-        printTree(newNode);
+        printTree(root);
       }
     }
     ++count;
@@ -93,20 +95,23 @@ int main(int argc, char *argv[])
 struct node * expand(struct node *root, struct node *returnedNode) {
   struct node *newNode = NULL;
   fprintf(stderr, "%d %d\n", returnedNode->valOne, returnedNode->valTwo);
-  if (returnedNode->valOne < root->middle->valOne) {
+  if (returnedNode->valOne < root->valOne) {
     newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
     newNode->left = root->middle;
     newNode->middle = root->right;
     root->right = NULL;
     root->middle = returnedNode;
     root->valTwo = returnedNode->valTwo;
-  } else if (returnedNode->valOne < root->right->valOne) {
-    newNode = makeNode(returnedNode->valTwo, findLargestNodeVal(root->right));
+    root->valOne = root->left->valTwo;
+  } else if (returnedNode->valOne < root->valTwo) {
+    newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
     newNode->left = returnedNode;
     newNode->middle = root->right;
     root->right = NULL;
+    root->valTwo = root->middle->valTwo;
   } else {
     newNode = makeNode(findLargestNodeVal(root->right), returnedNode->valTwo);
+    fprintf(stderr, "herdde\n");
     newNode->left = root->right;
     root->right = NULL;
     newNode->middle = returnedNode;
@@ -162,30 +167,14 @@ struct node * insert(struct node *root, struct node *node) {
   if (returnedNode) {
     if (root->right) {
       newNode = expand(root, returnedNode);
-//      if (insertPosition == 0) {
-//        newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
-//        newNode->left = root->middle;
-//        newNode->middle = root->right;
-//        root->right = NULL;
-//        root->middle = returnedNode;
-//        root->valTwo = returnedNode->valTwo;
-//      } else if (insertPosition == 1) { 
-//        newNode = makeNode(returnedNode->valTwo, findLargestNodeVal(root->right));
-//        newNode->left = returnedNode;
-//        newNode->middle = root->right;
-//        root->right = NULL;
-//      } else {
-//        newNode = makeNode(findLargestNodeVal(root->right), returnedNode->valTwo);
-//        newNode->left = root->right;
-//        root->right = NULL;
-//        newNode->middle = returnedNode;
-//      }
+      // Can return expansion logic to here; not generalizable to handling at root
     } else if (insertPosition == 1) {
       root->right = root->middle;
       root->middle = returnedNode;
       root->valTwo = returnedNode->valTwo;
     } else {
       root->right = returnedNode;
+      root->valTwo = root->middle->valTwo;
     }
   }
   return newNode;

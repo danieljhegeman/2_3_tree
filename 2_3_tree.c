@@ -36,10 +36,9 @@ struct listNode {
   struct listNode *next;
 };
 
-static int count = 0;
-
 int main(int argc, char *argv[])
 {
+  int leafCount = 0;
   struct node *root = makeNode(0, 0);
   struct node *node = makeNode(0, 0);
   struct nodeReturner *nodeReturner = NULL;
@@ -49,7 +48,7 @@ int main(int argc, char *argv[])
   size_t max = 10;
   while (getline(&input, &max, io->input) != -1) {
     node = makeNode(atoi(input), 0);
-    if (count < 3) {
+    if (leafCount < 3) {
       if (root->left) {
         if (node->valOne <= root->valOne) {
           if (node->valOne == root->valOne) {
@@ -75,7 +74,7 @@ int main(int argc, char *argv[])
         root->valOne = node->valOne;
         root->left = node;
       }
-      ++count;
+      ++leafCount;
     } else {
       nodeReturner = insert(root, node);
       if (nodeReturner->node) {
@@ -85,7 +84,7 @@ int main(int argc, char *argv[])
         root = newRoot;
       }
       if (nodeReturner->inserted) {
-        ++count;
+        ++leafCount;
       }
     }
     printTree(root);
@@ -239,30 +238,33 @@ struct files * setInputAndOutput(int argc, char *args[])
 
 void printTree(struct node *root)
 {
-  int count = 1;
+  int totalNodeCount = 1;
+  int rowNodeCount = 0;
   int row = 0;
   int newRow = 0;
   struct listNode *node = makeListNode(root, row);
   struct listNode *tail = node;
   struct listNode *temp;
   while (node) {
+    ++rowNodeCount;
     if (node->row > row) {
       ++row;
       newRow = 1;
+      rowNodeCount = 1;
     }
     if (node->treeNode->left) { // not a leaf
       tail->next = makeListNode(node->treeNode->left, row + 1);
       tail = tail->next;
-      ++count;
+      ++totalNodeCount;
       if (node->treeNode->middle) {
         tail->next = makeListNode(node->treeNode->middle, row + 1);
         tail = tail->next;
-        ++count;
+        ++totalNodeCount;
       }
       if (node->treeNode->right) {
         tail->next = makeListNode(node->treeNode->right, row + 1);
         tail = tail->next;
-        ++count;
+        ++totalNodeCount;
       }
     }
     if (newRow) {
@@ -282,7 +284,7 @@ void printTree(struct node *root)
     free(temp);
   }
   printf("|\n");
-  printf("%d entries\n", count);
+  printf("%d total nodes; %d leaf nodes\n", totalNodeCount, rowNodeCount);
 }
 
 struct listNode * makeListNode(struct node *treeNode, int row)

@@ -94,7 +94,6 @@ int main(int argc, char *argv[])
 
 struct node * expand(struct node *root, struct node *returnedNode) {
   struct node *newNode = NULL;
-  fprintf(stderr, "%d %d\n", returnedNode->valOne, returnedNode->valTwo);
   if (returnedNode->valOne < root->valOne) {
     newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
     newNode->left = root->middle;
@@ -111,7 +110,6 @@ struct node * expand(struct node *root, struct node *returnedNode) {
     root->valTwo = root->middle->valTwo;
   } else {
     newNode = makeNode(findLargestNodeVal(root->right), returnedNode->valTwo);
-    fprintf(stderr, "herdde\n");
     newNode->left = root->right;
     root->right = NULL;
     newNode->middle = returnedNode;

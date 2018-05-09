@@ -7,10 +7,14 @@ struct nodeReturner * makeNodeReturner(int inserted);
 struct files * setInputAndOutput(int argc, char *args[]);
 struct node * expand(struct node *root, struct node *returnedNode);
 struct nodeReturner * insert(struct node *root, struct node *node);
+void addNodes(struct node **rootPtr, struct files *io, int *leafCountPtr);
+void findAndRemoveNodes(struct node **rootPtr, int *leafCountPtr);
+struct nodeRemover * findNode(struct node *root, int target);
 int findLargestNodeVal(struct node *node);
 void valOneSwap(struct node *treeNode, struct node *newNode);
 void printTree(struct node *root);
 struct listNode * makeListNode(struct node *treeNode, int row);
+struct nodeRemover * makeNodeRemover();
 
 struct node {
   int valOne;
@@ -23,6 +27,12 @@ struct node {
 struct nodeReturner {
   int inserted;
   struct node *node;
+};
+
+struct nodeRemover {
+  int removed;
+  int restructure;
+  int newVal;
 };
 
 struct files {
@@ -38,17 +48,188 @@ struct listNode {
 
 int main(int argc, char *argv[])
 {
+  struct files *io = setInputAndOutput(argc, argv);
   int leafCount = 0;
   struct node *root = makeNode(0, 0);
+  char *input = NULL;
+  size_t max = 10;
+  printf("Enter any key to add values\n");
+  while (getline(&input, &max, stdin) != -1) {
+    printf("Add values\n");
+    addNodes(&root, io, &leafCount);
+    printf("Remove values\n");
+    findAndRemoveNodes(&root, &leafCount);
+    printf("Enter any key to add values\n");
+  }
+}
+
+void findAndRemoveNodes(struct node **rootPtr, int *leafCountPtr)
+{
+  struct nodeRemover *nodeRemover;
+  char *input = NULL;
+  size_t max = 10;
+  while (getline(&input, &max, stdin) != -1) {
+    nodeRemover = findNode(*rootPtr, atoi(input));
+    if (nodeRemover->removed) {
+      --*leafCountPtr;
+    }
+    if (nodeRemover->restructure && *leafCountPtr > 1) {
+      *rootPtr = (*rootPtr)->left;
+    }
+    printf("Num leaf nodes after removing: %d\n", *leafCountPtr);
+    printTree(*rootPtr);
+  }
+}
+
+struct nodeRemover * findNode(struct node *root, int target)
+{
+  struct nodeRemover *nodeRemover = makeNodeRemover();
+  int removedPosition;
+  if (!root->left->left) {
+    if (root->right) {
+      if (root->left->valOne == target) {
+        free(root->left);
+        root->left = root->middle;
+        root->valOne = root->valTwo;
+        root->middle = root->right;
+        root->valTwo = root->right->valOne;
+        root->right = NULL;
+      } else if (root->middle->valOne == target) {
+        free(root->middle); 
+        root->middle = root->right;
+        root->valTwo = root->right->valOne;
+        root->right = NULL;
+      } else if (root->right->valOne == target) {
+        free(root->right);
+        nodeRemover->newVal = root->valTwo;
+        root->right = NULL;
+      } else {
+        nodeRemover->removed = 0;
+      } 
+    } else {
+      if (root->left->valOne == target) {
+        free(root->left);
+        root->left = root->middle;
+        root->valOne = root->valTwo;
+        root->middle = NULL;
+        nodeRemover->restructure = 1;
+      } else if (root->middle->valOne == target) {
+        free(root->middle);
+        root->middle = NULL;
+        nodeRemover->newVal = root->valOne;
+        nodeRemover->restructure = 1;
+      } else {
+        nodeRemover->removed = 0;
+      }
+    }
+  } else {
+    if (target <= root->valOne) {
+      removedPosition = 1;
+      nodeRemover = findNode(root->left, target);
+      if (target == root->valOne) {
+        root->valOne = nodeRemover->newVal;
+      }
+    } else if (target <= root->valTwo) {
+      removedPosition = 2;
+      nodeRemover = findNode(root->middle, target);
+      if (target == root->valTwo) {
+        root->valTwo = nodeRemover->newVal;
+      }
+    } else if (root->right) {
+      removedPosition = 3;
+      nodeRemover = findNode(root->right, target);
+    } else {
+      nodeRemover->removed = 0;
+    }
+    if (nodeRemover->restructure) {
+      if (removedPosition == 1) {
+        root->left->middle = root->middle->left;
+        root->left->valTwo = root->middle->valOne;
+        root->valOne = root->middle->valOne;
+        if (root->middle->right) {
+          root->middle->left = root->middle->middle;
+          root->middle->valOne = root->middle->valTwo;
+          root->middle->middle = root->middle->right; 
+          root->middle->valTwo = root->valTwo;
+          root->middle->right = NULL;
+          nodeRemover->restructure = 0;
+        } else {
+          root->left->right = root->middle->middle;
+          root->valOne = root->middle->valTwo;
+          free(root->middle);
+          if (root->right) {
+            root->middle = root->right;
+            root->valTwo = findLargestNodeVal(root->middle);
+            root->right = NULL;
+            nodeRemover->restructure = 0;
+          } else {
+            root->middle = NULL;
+          }
+        }
+      } else if (removedPosition == 2) {
+        if (root->right) {
+          root->middle->middle = root->right->left;
+          root->middle->valTwo = root->right->valOne;
+          root->valTwo = root->right->valOne;
+          if (root->right->right) {
+            root->right->left = root->right->middle;
+            root->right->valOne = root->right->valTwo;
+            root->right->middle = root->right->right;
+            root->right->valTwo = findLargestNodeVal(root->right);
+            root->right->right = NULL;
+          } else {
+            root->middle->right = root->right->middle;
+            root->valTwo = root->right->valTwo;
+            free(root->right);
+            root->right = NULL;
+          }
+          nodeRemover->restructure = 0;
+        } else if (root->left->right) {
+          root->middle->middle = root->middle->left;
+          root->middle->valTwo = root->middle->valOne;
+          root->middle->left = root->left->right;
+          root->middle->valOne = root->valOne;
+          root->left->right = NULL;
+          root->valOne = root->left->valTwo;
+          nodeRemover->restructure = 0;
+        } else {
+          root->left->right = root->middle->left;
+          root->valOne = root->middle->valOne;
+          free(root->middle);  
+          root->middle = NULL;
+        }
+      } else if (removedPosition == 3) {
+        if (root->middle->right) {
+          root->right->middle = root->right->left;
+          root->right->valTwo = root->right->valOne;
+          root->right->left = root->middle->right;
+          root->right->valOne = root->valTwo;
+          root->middle->right = NULL;
+          root->valTwo = root->middle->valTwo;
+        } else {
+          root->middle->right = root->right->left;
+          root->valTwo = root->right->valOne;
+          free(root->right);
+          root->right = NULL;
+        }
+        nodeRemover->restructure = 0;
+      } 
+    }
+  }
+  return nodeRemover;
+}
+
+void addNodes(struct node **rootPtr, struct files *io, int *leafCountPtr)
+{
+  struct node *root = *rootPtr;
   struct node *node = makeNode(0, 0);
   struct nodeReturner *nodeReturner = NULL;
   struct node *newRoot = NULL;
-  struct files *io = setInputAndOutput(argc, argv);
   char *input = NULL;
   size_t max = 10;
   while (getline(&input, &max, io->input) != -1) {
     node = makeNode(atoi(input), 0);
-    if (leafCount < 3) {
+    if (*leafCountPtr < 3) {
       if (root->left) {
         if (node->valOne <= root->valOne) {
           if (node->valOne == root->valOne) {
@@ -74,7 +255,7 @@ int main(int argc, char *argv[])
         root->valOne = node->valOne;
         root->left = node;
       }
-      ++leafCount;
+      ++*leafCountPtr;
     } else {
       nodeReturner = insert(root, node);
       if (nodeReturner->node) {
@@ -82,16 +263,18 @@ int main(int argc, char *argv[])
         newRoot->left = root;
         newRoot->middle = nodeReturner->node;
         root = newRoot;
+        *rootPtr = root;
       }
       if (nodeReturner->inserted) {
-        ++leafCount;
+        ++*leafCountPtr;
       }
     }
     printTree(root);
   }
 }
 
-struct node * expand(struct node *root, struct node *returnedNode) {
+struct node * expand(struct node *root, struct node *returnedNode)
+{
   struct node *newNode = NULL;
   if (returnedNode->valOne < root->valOne) {
     newNode = makeNode(root->valTwo, findLargestNodeVal(root->right));
@@ -116,7 +299,8 @@ struct node * expand(struct node *root, struct node *returnedNode) {
   return newNode;
 }
 
-struct nodeReturner * insert(struct node *root, struct node *node) {
+struct nodeReturner * insert(struct node *root, struct node *node)
+{
   struct nodeReturner *nodeReturner = makeNodeReturner(1);
   int insertPosition = 0;
   if (!root->left->left) { // root has leaves
@@ -146,44 +330,46 @@ struct nodeReturner * insert(struct node *root, struct node *node) {
       root->right = NULL;
       nodeReturner->node->middle = node;
     }
-    return nodeReturner;
-  }
-  if (node->valOne <= root->valOne) {
-    insertPosition = 1;
-    nodeReturner = insert(root->left, node);
-  } else if (node->valOne <= root->valTwo) {
-    insertPosition = 2;
-    nodeReturner = insert(root->middle, node);
   } else {
-    if (!root->right) {
-      nodeReturner = insert(root->middle, node); 
-      if (!nodeReturner->node && nodeReturner->inserted) {
-        root->valTwo = node->valOne;
+    if (node->valOne <= root->valOne) {
+      insertPosition = 1;
+      nodeReturner = insert(root->left, node);
+    } else if (node->valOne <= root->valTwo) {
+      insertPosition = 2;
+      nodeReturner = insert(root->middle, node);
+    } else {
+      if (!root->right) {
+        nodeReturner = insert(root->middle, node); 
+        if (!nodeReturner->node && nodeReturner->inserted) {
+          root->valTwo = node->valOne;
+        }
+      } else {
+        insertPosition = 3;
+        nodeReturner = insert(root->right, node);
       }
-    } else {
-      insertPosition = 3;
-      nodeReturner = insert(root->right, node);
     }
-  }
-  if (nodeReturner->node) {
-    if (root->right) {
-      nodeReturner->node = expand(root, nodeReturner->node);
-      // Can return expansion logic to here; not generalizable to handling at root
-    } else if (insertPosition == 1) {
-      root->right = root->middle;
-      root->middle = nodeReturner->node;
-      root->valTwo = nodeReturner->node->valTwo;
-      nodeReturner->node = NULL;
-    } else {
-      root->right = nodeReturner->node;
-      root->valTwo = root->middle->valTwo;
-      nodeReturner->node = NULL;
+    if (nodeReturner->node) {
+      if (root->right) {
+        nodeReturner->node = expand(root, nodeReturner->node);
+        // Can return expansion logic to here; not generalizable to handling at root
+      } else if (insertPosition == 1) {
+        root->valOne = root->left->valTwo;
+        root->right = root->middle;
+        root->middle = nodeReturner->node;
+        root->valTwo = nodeReturner->node->valTwo;
+        nodeReturner->node = NULL;
+      } else {
+        root->right = nodeReturner->node;
+        root->valTwo = root->middle->valTwo;
+        nodeReturner->node = NULL;
+      }
     }
   }
   return nodeReturner;
 }
 
-int findLargestNodeVal(struct node *node) {
+int findLargestNodeVal(struct node *node)
+{
   while (node->left) {
     if (node->right) {
       node = node->right;
@@ -194,7 +380,8 @@ int findLargestNodeVal(struct node *node) {
   return node->valOne;
 }
 
-void valOneSwap(struct node *treeNode, struct node *newNode) {
+void valOneSwap(struct node *treeNode, struct node *newNode)
+{
   int tempVal = treeNode->valOne;
   treeNode->valOne = newNode->valOne;
   newNode->valOne = tempVal;
@@ -217,6 +404,14 @@ struct nodeReturner * makeNodeReturner(int inserted)
   nodeReturner->inserted = inserted;
   nodeReturner->node = NULL;
   return nodeReturner;
+}
+
+struct nodeRemover * makeNodeRemover() 
+{
+  struct nodeRemover *nodeRemover = malloc(sizeof(*nodeRemover));
+  nodeRemover->removed = 1;
+  nodeRemover->restructure = 0;
+  return nodeRemover;
 }
 
 struct files * setInputAndOutput(int argc, char *args[])

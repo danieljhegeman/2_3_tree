@@ -2,22 +2,18 @@ import Tree
 
 class twoThreeTree():
   def __init__(self, vals=[]):
-    self.tree = Tree.twoThreeTree()
+    self.__treePtr = Tree.twoThreeTree()
     for val in vals:
       self.insert(val)
 
   def insert(self, val):
-    return Tree.addNode(self.tree, val)
+    return Tree.addNode(self.__treePtr, val) == 1
 
   def remove(self, val):
-    result = Tree.removeNode(self.tree, val)
-    return result
+    return Tree.removeNode(self.__treePtr, val) == 1
   
   def contains(self, val):
-    if Tree.hasVal(self.tree, val):
-      return True
-    else:
-      return False
+    return Tree.hasVal(self.__treePtr, val) == 1
 
   def count(self):
-    return Tree.count(self.tree)
+    return Tree.count(self.__treePtr)

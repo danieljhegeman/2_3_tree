@@ -506,6 +506,16 @@ struct nodeRemover * makeNodeRemover()
   return nodeRemover;
 }
 
+static PyObject * bfList(PyObject *nodes[], int length)
+{
+  PyObject *nodesPyList = PyList_New(length);
+  int i;
+  for (i = 0; i < length; ++i) {
+    PyList_SET_ITEM(nodesPyList, i, PyInt_FromLong(nodes[i]));
+  }
+  return nodesPyList;
+}
+
 void printTree(struct node *root)
 {
   int totalNodeCount = 1;
@@ -556,6 +566,8 @@ void printTree(struct node *root)
   printf("|\n");
   printf("%d total nodes; %d leaf nodes\n", totalNodeCount, rowNodeCount);
 }
+
+
 
 struct listNode * makeListNode(struct node *treeNode, int row)
 {
